@@ -4,7 +4,6 @@ package e2e
 
 import (
 	"encoding/json"
-	"os/exec"
 	"strings"
 	"testing"
 )
@@ -16,12 +15,12 @@ import (
 func TestSessionDaemon(t *testing.T) {
 	name := env(t, "VIRT_MM_E2E_CONTAINER")
 	virtmm(t, "version") // builds it
-	if out, err := exec.Command("podman", "cp", binPath, name+":/tmp/virt-mm").CombinedOutput(); err != nil {
+	if out, err := podman("cp", binPath, name+":/tmp/virt-mm").CombinedOutput(); err != nil {
 		t.Fatalf("podman cp: %v %s", err, out)
 	}
 	inside := func(script string) string {
 		t.Helper()
-		out, err := exec.Command("podman", "exec", "--user", "e2e", "-e", "HOME=/tmp/e2e-home", "-e", "XDG_RUNTIME_DIR=/tmp/e2e-run",
+		out, err := podman("exec", "--user", "e2e", "-e", "HOME=/tmp/e2e-home", "-e", "XDG_RUNTIME_DIR=/tmp/e2e-run",
 			"-e", "VIRT_MM_CONFIG=/tmp/e2e-home/virt-mm", name, "sh", "-c", script).CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s: %v\n%s", script, err, out)
@@ -29,7 +28,7 @@ func TestSessionDaemon(t *testing.T) {
 		return string(out)
 	}
 	t.Cleanup(func() {
-		exec.Command("podman", "exec", name, "sh", "-c", "pkill -u e2e -x libvirtd; rm -rf /tmp/e2e-home /tmp/e2e-run /tmp/virt-mm").Run()
+		podman("exec", name, "sh", "-c", "pkill -u e2e -x libvirtd; rm -rf /tmp/e2e-home /tmp/e2e-run /tmp/virt-mm").Run()
 	})
 	inside("mkdir -p /tmp/e2e-home && mkdir -m 700 -p /tmp/e2e-run")
 	if out := inside("pgrep -u e2e -x libvirtd || true"); strings.TrimSpace(out) != "" {

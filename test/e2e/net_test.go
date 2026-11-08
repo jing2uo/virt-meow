@@ -36,9 +36,21 @@ func netCLI(t *testing.T, args ...string) hv.Network {
 	return n
 }
 
+// podmanHome is HOME as the tests started with it. Rootless podman finds its
+// containers under $XDG_DATA_HOME, or $HOME/.local/share when that is unset
+// (as on GitHub's runners), and sshHome changes HOME.
+var podmanHome = os.Getenv("HOME")
+
+// podman runs podman with the HOME the e2e container was started with.
+func podman(args ...string) *exec.Cmd {
+	c := exec.Command("podman", args...)
+	c.Env = append(os.Environ(), "HOME="+podmanHome)
+	return c
+}
+
 func podmanExec(t *testing.T, args ...string) string {
 	t.Helper()
-	out, err := exec.Command("podman", append([]string{"exec", env(t, "VIRT_MM_E2E_CONTAINER")}, args...)...).CombinedOutput()
+	out, err := podman(append([]string{"exec", env(t, "VIRT_MM_E2E_CONTAINER")}, args...)...).CombinedOutput()
 	if err != nil {
 		t.Fatalf("podman exec %v: %v: %s", args, err, out)
 	}
@@ -164,7 +176,7 @@ func TestNetworks(t *testing.T) {
 	// A bridge the host has: a machine on the network is plugged into it.
 	podmanExec(t, "ip", "link", "add", "e2e-br0", "type", "bridge")
 	t.Cleanup(func() {
-		exec.Command("podman", "exec", env(t, "VIRT_MM_E2E_CONTAINER"), "ip", "link", "del", "e2e-br0").Run()
+		podman("exec", env(t, "VIRT_MM_E2E_CONTAINER"), "ip", "link", "del", "e2e-br0").Run()
 	})
 	podmanExec(t, "ip", "link", "set", "e2e-br0", "up")
 	n = netCLI(t, "add", "e2e-br", "--type", "bridge", "--bridge", "e2e-br0")

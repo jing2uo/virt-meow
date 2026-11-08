@@ -131,7 +131,7 @@ func TestEvents(t *testing.T) {
 	}
 
 	// libvirtd restarts: virt-mm events connects again and goes on.
-	if out, err := exec.Command("podman", "exec", env(t, "VIRT_MM_E2E_CONTAINER"), "pkill", "-x", "libvirtd").CombinedOutput(); err != nil {
+	if out, err := podman("exec", env(t, "VIRT_MM_E2E_CONTAINER"), "pkill", "-x", "libvirtd").CombinedOutput(); err != nil {
 		t.Fatalf("killing libvirtd: %v: %s", err, out)
 	}
 	if err := probeDaemon(t, 20*time.Second); err != nil {

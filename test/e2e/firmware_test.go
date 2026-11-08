@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -38,7 +37,7 @@ func liveOS(t *testing.T, s *conn.Session, name string) *libvirtxml.DomainOS {
 // inContainer reports whether file exists in the e2e container.
 func inContainer(t *testing.T, file string) bool {
 	t.Helper()
-	return exec.Command("podman", "exec", env(t, "VIRT_MM_E2E_CONTAINER"), "test", "-e", file).Run() == nil
+	return podman("exec", env(t, "VIRT_MM_E2E_CONTAINER"), "test", "-e", file).Run() == nil
 }
 
 // virt-mm set --firmware: bios → uefi → uefi-secure → bios, the machine

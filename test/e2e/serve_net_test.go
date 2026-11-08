@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"os/exec"
 	"slices"
 	"strings"
 	"testing"
@@ -123,7 +122,7 @@ func TestServeNetworks(t *testing.T) {
 	}
 	podmanExec(t, "ip", "link", "add", "e2e-pbr0", "type", "bridge")
 	t.Cleanup(func() {
-		exec.Command("podman", "exec", env(t, "VIRT_MM_E2E_CONTAINER"), "ip", "link", "del", "e2e-pbr0").Run()
+		podman("exec", env(t, "VIRT_MM_E2E_CONTAINER"), "ip", "link", "del", "e2e-pbr0").Run()
 	})
 	podmanExec(t, "ip", "link", "set", "e2e-pbr0", "up")
 	var brs []string

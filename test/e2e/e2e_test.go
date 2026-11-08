@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -82,10 +81,10 @@ func checkDaemon(t *testing.T, when string) {
 		return
 	}
 	name := env(t, "VIRT_MM_E2E_CONTAINER")
-	ps, _ := exec.Command("podman", "exec", name, "ps", "-o", "pid,stat,wchan:32,args", "-C", "libvirtd").CombinedOutput()
-	logs, _ := exec.Command("podman", "logs", "--tail", "40", name).CombinedOutput()
+	ps, _ := podman("exec", name, "ps", "-o", "pid,stat,wchan:32,args", "-C", "libvirtd").CombinedOutput()
+	logs, _ := podman("logs", "--tail", "40", name).CombinedOutput()
 	t.Errorf("libvirtd stopped answering %s: %v\n%s--- podman logs --tail 40 %s ---\n%s", when, err, ps, name, logs)
-	exec.Command("podman", "exec", name, "pkill", "-9", "-x", "libvirtd").Run()
+	podman("exec", name, "pkill", "-9", "-x", "libvirtd").Run()
 	if err := probeDaemon(t, 20*time.Second); err != nil {
 		daemon.Lock()
 		daemon.dead = fmt.Sprintf("libvirtd stopped answering in %s and a restart didn't bring it back: %v", t.Name(), err)
@@ -273,7 +272,7 @@ func TestReconnectAfterDaemonRestart(t *testing.T) {
 	defer s.Close()
 	machine(t, s, "test")
 
-	out, err := exec.Command("podman", "exec", env(t, "VIRT_MM_E2E_CONTAINER"), "pkill", "-x", "libvirtd").CombinedOutput()
+	out, err := podman("exec", env(t, "VIRT_MM_E2E_CONTAINER"), "pkill", "-x", "libvirtd").CombinedOutput()
 	if err != nil {
 		t.Fatalf("killing libvirtd: %v: %s", err, out)
 	}

@@ -4,7 +4,6 @@ package e2e
 
 import (
 	"fmt"
-	"os/exec"
 	"regexp"
 	"slices"
 	"strings"
@@ -35,7 +34,7 @@ func TestHostDevs(t *testing.T) {
 			t.Errorf("%+v", d)
 		}
 	}
-	groups, _ := exec.Command("podman", "exec", env(t, "VIRT_MM_E2E_CONTAINER"), "ls", "/sys/kernel/iommu_groups").Output()
+	groups, _ := podman("exec", env(t, "VIRT_MM_E2E_CONTAINER"), "ls", "/sys/kernel/iommu_groups").Output()
 	if hasIOMMU := len(strings.Fields(string(groups))) > 0; hasIOMMU != slices.ContainsFunc(pci, func(d hv.HostDevice) bool { return d.IOMMUGroup != nil }) {
 		t.Errorf("IOMMU groups on the host: %v; in the list: %+v", hasIOMMU, pci)
 	}
