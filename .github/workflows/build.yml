@@ -1,11 +1,11 @@
 # Builds everything a release ships, as artifacts (release.yml uploads them):
 #   linux-<arch>    the GUI for Linux, which is also the CLI (virt-mm with a
-#                   command), x86_64 and aarch64 natively; built on debian:sid
+#                   command), x86_64 and arm64 natively; built on debian:sid
 #                   so it links nothing newer than org.gnome.Platform//51 has
 #                   (scripts/Containerfile says why); FlatPark's package
 #                   downloads these
 #   macos           virt-meow.app, universal (arm64 + amd64), zipped; unsigned
-#   windows         virt-mm.exe for amd64 and arm64, zipped; cross-compiled,
+#   windows         virt-mm.exe for x86_64 and arm64, zipped; cross-compiled,
 #                   as Wails needs no cgo on Windows
 #   cli             make dist: the static nogui CLI for six platforms
 # release.yml calls it with the version of the release being cut, ci.yml
@@ -35,7 +35,7 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
-          - arch: aarch64
+          - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     container: docker.io/library/debian:sid
@@ -65,13 +65,13 @@ jobs:
 
       - name: Build GUI
         run: |
-          make gui-native GUI_OUT="dist/virt-mm-linux-${{ matrix.arch }}"
-          "dist/virt-mm-linux-${{ matrix.arch }}" version
+          make gui-native GUI_OUT="dist/virt-meow-linux-${{ matrix.arch }}"
+          "dist/virt-meow-linux-${{ matrix.arch }}" version
 
       - uses: actions/upload-artifact@v7
         with:
           name: linux-${{ matrix.arch }}
-          path: dist/virt-mm-linux-${{ matrix.arch }}
+          path: dist/virt-meow-linux-${{ matrix.arch }}
           if-no-files-found: error
 
   macos:
@@ -131,7 +131,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: windows
-          path: dist/release/virt-mm-windows-*.zip
+          path: dist/release/virt-meow-windows-*.zip
           if-no-files-found: error
 
   cli:
@@ -160,5 +160,5 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: cli
-          path: dist/release/virt-mm_*
+          path: dist/release/virt-mm-*
           if-no-files-found: error

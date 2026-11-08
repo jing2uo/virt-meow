@@ -1,20 +1,23 @@
 #!/bin/sh
-# The release archives of the CLI (nogui, CGO_ENABLED=0): linux, darwin and
-# windows on amd64 and arm64, each with LICENSE and README.md, and their
+# The release archives of the CLI (nogui, CGO_ENABLED=0): linux, macos and
+# windows on x86_64 and arm64, each with LICENSE and README.md, and their
 # SHA256SUMS, in dist/release:
 #
-#   virt-mm_<version>_<os>_<arch>.tar.gz   (windows: .zip, with virt-mm.exe)
+#   virt-mm-<os>-<arch>.tar.gz   (windows: .zip, with virt-mm.exe)
+#
+# The names hold no version, the same in every release: a
+# releases/latest/download/ link stays good. The desktop app's are
+# virt-meow-* (CONTRIBUTING.md, "Releasing").
 #
 #   VERSION=0.1.0 scripts/dist.sh       (make dist VERSION=0.1.0)
 #
-# VERSION defaults to scripts/version.sh's; the binary says it as given, the
-# file names without a leading "v". The GUI's release files are built by
+# VERSION defaults to scripts/version.sh's; the binary says it as given. The
+# GUI's release files are built by
 # .github/workflows/build.yml.
 # DIST_TARGETS='linux/amd64 …' builds fewer.
 set -eu
 cd "$(dirname "$0")/.."
 version=${VERSION:-$(scripts/version.sh)}
-v=${version#v}
 targets=${DIST_TARGETS:-linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64}
 out=dist/release
 work=$(mktemp -d "${TMPDIR:-/tmp}/virt-mm-dist.XXXXXX")
@@ -22,12 +25,16 @@ trap 'rm -rf "$work"' EXIT
 
 # Its own files only: make windows puts its zips here too.
 mkdir -p "$out"
-rm -f "$out"/virt-mm_* "$out/SHA256SUMS"
+rm -f "$out"/virt-mm-* "$out/SHA256SUMS"
 # The archives' entries get this time and owner, whoever builds them when.
 mtime=$(git log -1 --format=%cI 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
 for t in $targets; do
 	os=${t%/*} arch=${t#*/}
-	name=virt-mm_${v}_${os}_${arch}
+	# Named for people: macos, not darwin; x86_64, not amd64.
+	osname=$os archname=$arch
+	[ "$os" = darwin ] && osname=macos
+	[ "$arch" = amd64 ] && archname=x86_64
+	name=virt-mm-$osname-$archname
 	exe=virt-mm
 	[ "$os" = windows ] && exe=virt-mm.exe
 	dir=$work/$name
@@ -45,5 +52,5 @@ for t in $targets; do
 	fi
 	echo "dist: $archive"
 done
-(cd "$out" && sha256sum -- virt-mm_* >SHA256SUMS)
+(cd "$out" && sha256sum -- virt-mm-* >SHA256SUMS)
 echo "dist: $out/SHA256SUMS"

@@ -43,9 +43,14 @@ virt-meow 是给人看的名字, `virt-mm` 是敲的命令, 就像 Visual Studio
 
 ## 安装
 
-每个 [release](https://github.com/jing2uo/virt-meow/releases/latest) 都有 Linux、macOS、Windows
-的窗口版、命令行二进制和 `SHA256SUMS`。窗口版的二进制同时也是命令行: 不带命令的 `virt-mm`
-打开窗口, `virt-mm ls` 列出机器。
+每个 [release](https://github.com/jing2uo/virt-meow/releases/latest) 都有两类文件, 每个版本名字都一样:
+
+| | Linux | macOS | Windows |
+|---|---|---|---|
+| **virt-meow**, 桌面应用: 窗口, 同一个二进制也是命令行 | `virt-meow-linux-x86_64`<br>`virt-meow-linux-arm64` | `virt-meow-macos.zip` | `virt-meow-windows-x86_64.zip`<br>`virt-meow-windows-arm64.zip` |
+| **virt-mm**, 只有命令行: 静态链接, 没有窗口 | `virt-mm-linux-x86_64.tar.gz`<br>`virt-mm-linux-arm64.tar.gz` | `virt-mm-macos-x86_64.tar.gz`<br>`virt-mm-macos-arm64.tar.gz` | `virt-mm-windows-x86_64.zip`<br>`virt-mm-windows-arm64.zip` |
+
+外加 `SHA256SUMS`。桌面应用的二进制也叫 `virt-mm`: 不带命令时打开窗口, `virt-mm ls` 列出机器。
 
 ### Linux
 
@@ -56,7 +61,8 @@ flatpak remote-add --if-not-exists --user flatpark https://dl.flatpark.org/flatp
 flatpak install --user flatpark io.github.jing2uo.VirtMeow
 ```
 
-也可以直接下载单文件的 `virt-mm-linux-x86_64` 或 `virt-mm-linux-aarch64`, 加上可执行权限即可。
+也可以直接下载单文件的 `virt-meow-linux-x86_64` 或 `virt-meow-linux-arm64`, 加上可执行权限
+(并改名为 `virt-mm`) 即可。
 它需要系统里有 GTK 4、WebKitGTK 6 和 glibc 2.38 以上, 也就是较新的发行版 (Debian 13、
 Ubuntu 24.04、Fedora 40); 它是按 Flatpak 的 GNOME 51 运行时构建和测试的。
 
@@ -74,18 +80,18 @@ xattr -dr com.apple.quarantine /Applications/virt-meow.app
 
 ### Windows (实验性)
 
-下载 `virt-mm-windows-amd64.zip` (或 `-arm64`), 运行 `virt-mm.exe`。窗口需要 WebView2
+下载 `virt-meow-windows-x86_64.zip` (或 `-arm64`), 运行 `virt-mm.exe`。窗口需要 WebView2
 运行时, Windows 11 自带 (Windows 10 可从微软下载安装)。exe 没有签名, SmartScreen 可能提示
 "Windows 已保护你的电脑": 点"更多信息" → "仍要运行"。
 
 `virt-mm.exe ls` 等命令会输出到运行它的终端, 但因为它是窗口程序, 终端不会等它结束:
 提示符可能先于输出出现 (`virt-mm ls | more` 会等)。写脚本或要回答问题的命令
-(`hostkey trust`、密码), 请用 CLI 归档里的 `virt-mm.exe`, 那是控制台程序。
+(`hostkey trust`、密码), 请用 `virt-mm-windows-*.zip` 里的 `virt-mm.exe`, 那是控制台程序。
 
 ### 只要命令行
 
-Linux、macOS、Windows 的 amd64 和 arm64 版 `virt-mm_<版本>_<os>_<arch>.tar.gz`
-(Windows 为 `.zip`): 静态链接、不含 GUI, 把 `virt-mm` 放进 `PATH` 即可。用 Go 安装:
+Linux、macOS、Windows 的 x86_64 和 arm64 版 `virt-mm-<os>-<arch>.tar.gz`
+(Windows 为 `.zip`): 静态链接、没有窗口, 把 `virt-mm` 放进 `PATH` 即可。用 Go 安装:
 
 ```sh
 go install -tags nogui github.com/jing2uo/virt-meow/cmd/virt-mm@latest

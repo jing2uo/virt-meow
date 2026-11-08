@@ -64,10 +64,16 @@ next minor` the next.
 Either way `.github/workflows/release.yml` builds every platform
 (`build.yml`), publishes the GitHub release with all the files and
 `SHA256SUMS` (published at once, not a draft nor a prerelease), and tells
-FlatPark, which then packages the new `virt-mm-linux-*`. A commit already
-released is refused. The release files keep their names from one version
-to the next, as FlatPark finds them by name: renaming one breaks FlatPark's
-package.
+FlatPark, which then packages the new `virt-meow-linux-*`. A commit already
+released is refused.
+
+The release files keep their names from one version to the next, with no
+version in them (the table in the README lists them): `virt-meow-*` is the
+app, window and command line in one binary; `virt-mm-*` the command line
+alone; the arch is `x86_64` or `arm64`. FlatPark finds its files by name,
+as can a `releases/latest/download/<name>` link: a rename goes to
+FlatPark's package (`registry/io.github.jing2uo.VirtMeow/resolve-update.sh`)
+first, or its next update fails.
 
 ## License
 

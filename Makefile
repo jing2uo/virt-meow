@@ -63,14 +63,16 @@ winres:
 	$(WINRES) make --in packaging/windows/winres.json --out cmd/virt-mm/rsrc --arch amd64,arm64 \
 		--file-version "$(VERSION)" --product-version "$(VERSION)"
 
-# dist/release/virt-mm-windows-<arch>.zip: virt-mm.exe, LICENSE, README.md.
+# dist/release/virt-meow-windows-<x86_64|arm64>.zip: virt-mm.exe, LICENSE,
+# README.md.
 windows: winres
 	for a in amd64 arm64; do \
 		rm -rf dist/windows-$$a && mkdir -p dist/windows-$$a dist/release && \
 		GOOS=windows GOARCH=$$a CGO_ENABLED=0 $(MAKE) -s gui-native GUI_OUT=dist/windows-$$a/virt-mm.exe && \
 		cp LICENSE README.md dist/windows-$$a/ && \
-		rm -f dist/release/virt-mm-windows-$$a.zip && \
-		(cd dist/windows-$$a && python3 -I -m zipfile -c ../release/virt-mm-windows-$$a.zip virt-mm.exe LICENSE README.md) || exit 1; \
+		n=$$a; [ $$a = amd64 ] && n=x86_64; \
+		rm -f dist/release/virt-meow-windows-$$n.zip && \
+		(cd dist/windows-$$a && python3 -I -m zipfile -c ../release/virt-meow-windows-$$n.zip virt-mm.exe LICENSE README.md) || exit 1; \
 	done
 
 vet:
@@ -103,7 +105,7 @@ MANIFEST   := packaging/flatpak/$(FLATPAK_ID).yml
 .PHONY: flatpak
 # Build and (re)install the local Flatpak, the way to run the GUI on Linux
 # while developing it. Users get it from FlatPark, which packages the
-# release's virt-mm-linux-* files.
+# release's virt-meow-linux-* files.
 flatpak: gui
 	flatpak run org.flatpak.Builder --force-clean --disable-rofiles-fuse --repo=.cache/repo .cache/flatpak-build $(MANIFEST)
 	flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo .cache/repo .cache/virt-mm.flatpak $(FLATPAK_ID)

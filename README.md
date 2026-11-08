@@ -52,9 +52,15 @@ Studio Code and `code` ([ADR-0004](docs/adr/0004-name.md)).
 ## Install
 
 Every [release](https://github.com/jing2uo/virt-meow/releases/latest) has
-the window for Linux, macOS and Windows, the command-line binaries, and
-`SHA256SUMS`. The window's binary is also the command line: `virt-mm` with
-no command opens the window, `virt-mm ls` lists machines.
+two kinds of files, named the same in every version:
+
+| | Linux | macOS | Windows |
+|---|---|---|---|
+| **virt-meow**, the app: its window, and the command line in the same binary | `virt-meow-linux-x86_64`<br>`virt-meow-linux-arm64` | `virt-meow-macos.zip` | `virt-meow-windows-x86_64.zip`<br>`virt-meow-windows-arm64.zip` |
+| **virt-mm**, the command line alone: static, no window | `virt-mm-linux-x86_64.tar.gz`<br>`virt-mm-linux-arm64.tar.gz` | `virt-mm-macos-x86_64.tar.gz`<br>`virt-mm-macos-arm64.tar.gz` | `virt-mm-windows-x86_64.zip`<br>`virt-mm-windows-arm64.zip` |
+
+and `SHA256SUMS`. The app's binary is `virt-mm` too: with no command it
+opens the window, `virt-mm ls` lists machines.
 
 ### Linux
 
@@ -65,8 +71,8 @@ flatpak remote-add --if-not-exists --user flatpark https://dl.flatpark.org/flatp
 flatpak install --user flatpark io.github.jing2uo.VirtMeow
 ```
 
-Or download `virt-mm-linux-x86_64` or `virt-mm-linux-aarch64`, a single
-binary, and make it executable. It needs GTK 4, WebKitGTK 6 and glibc 2.38
+Or download `virt-meow-linux-x86_64` or `virt-meow-linux-arm64`, a single
+binary, and make it executable (and call it `virt-mm`). It needs GTK 4, WebKitGTK 6 and glibc 2.38
 or later on the system, so a recent distribution (Debian 13, Ubuntu 24.04,
 Fedora 40); it is built for, and tested in, the Flatpak's GNOME 51 runtime.
 
@@ -85,7 +91,7 @@ The command line is `/Applications/virt-meow.app/Contents/MacOS/virt-mm`.
 
 ### Windows (experimental)
 
-Download `virt-mm-windows-amd64.zip` (or `-arm64`) and run `virt-mm.exe`.
+Download `virt-meow-windows-x86_64.zip` (or `-arm64`) and run `virt-mm.exe`.
 The window needs the WebView2 runtime, which Windows 11 has (on Windows 10,
 install it from Microsoft). The exe isn't signed, so SmartScreen may say
 "Windows protected your PC": **More info** → **Run anyway**.
@@ -93,13 +99,13 @@ install it from Microsoft). The exe isn't signed, so SmartScreen may say
 `virt-mm.exe ls` and the other commands print to the terminal they are run
 in, but as a windowed program it doesn't make the terminal wait: the prompt
 can come back before the output (`virt-mm ls | more` waits). For scripts and
-commands that ask questions (`hostkey trust`, passwords), use the CLI
-archive's `virt-mm.exe`, a console program.
+commands that ask questions (`hostkey trust`, passwords), use the
+`virt-mm.exe` of `virt-mm-windows-*.zip`, a console program.
 
 ### The command line alone
 
-`virt-mm_<version>_<os>_<arch>.tar.gz` (Windows: `.zip`) for Linux, macOS
-and Windows on amd64 and arm64: static, no GUI; put `virt-mm` on your
+`virt-mm-<os>-<arch>.tar.gz` (Windows: `.zip`) for Linux, macOS and
+Windows on x86_64 and arm64: static, no window; put `virt-mm` on your
 `PATH`. With Go:
 
 ```sh

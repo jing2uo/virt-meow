@@ -4,13 +4,16 @@
 # v* tag plus that bump, and the tag is created on the run's commit - or
 # push a vX.Y.Z tag yourself.
 #
-# The files keep the same names from one release to the next, for FlatPark's
-# extra-data to find (the CLI archives alone carry the version):
-#   virt-mm-linux-x86_64, virt-mm-linux-aarch64   the Linux GUI and CLI
-#   virt-meow-macos.zip                           virt-meow.app
-#   virt-mm-windows-amd64.zip, …-arm64.zip        virt-mm.exe
-#   virt-mm_<version>_<os>_<arch>.tar.gz|.zip     the CLI (make dist)
-#   SHA256SUMS                                    of all of them
+# The files keep the same names from one release to the next, with no
+# version in them, for FlatPark's extra-data and releases/latest/download/
+# links. virt-meow-* is the desktop app (its window, and the CLI in the same
+# binary), virt-mm-* the CLI alone; <arch> is x86_64 or arm64:
+#   virt-meow-linux-<arch>             the Linux app, one file
+#   virt-meow-macos.zip                virt-meow.app, universal
+#   virt-meow-windows-<arch>.zip       virt-mm.exe
+#   virt-mm-<linux|macos>-<arch>.tar.gz, virt-mm-windows-<arch>.zip
+#                                      the CLI (make dist)
+#   SHA256SUMS                         of all of them
 name: release
 
 on:
@@ -80,13 +83,17 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           cd release
-          chmod +x virt-mm-linux-*
-          want="virt-mm-linux-x86_64 virt-mm-linux-aarch64 virt-meow-macos.zip
-            virt-mm-windows-amd64.zip virt-mm-windows-arm64.zip"
+          chmod +x virt-meow-linux-*
+          want="virt-meow-linux-x86_64 virt-meow-linux-arm64 virt-meow-macos.zip
+            virt-meow-windows-x86_64.zip virt-meow-windows-arm64.zip
+            virt-mm-linux-x86_64.tar.gz virt-mm-linux-arm64.tar.gz
+            virt-mm-macos-x86_64.tar.gz virt-mm-macos-arm64.tar.gz
+            virt-mm-windows-x86_64.zip virt-mm-windows-arm64.zip"
           for f in $want; do
-            [ -f "$f" ] || { echo "::error::$f is missing"; exit 1; }
+            [ -f "$f" ] || { echo "::error::$f is missing"; ls; exit 1; }
           done
-          [ "$(find . -name 'virt-mm_*' | wc -l)" -eq 6 ] || { echo "::error::not 6 CLI archives"; ls; exit 1; }
+          # Nothing else: a stray file would be published too.
+          [ "$(ls | wc -l)" -eq 11 ] || { echo "::error::files other than these:"; ls; exit 1; }
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
           # Creates the tag on this commit when the run was a manual one.
