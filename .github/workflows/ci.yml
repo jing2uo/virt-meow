@@ -62,5 +62,8 @@ jobs:
           go-version-file: go.mod
       # QEMU runs under TCG in the container: no KVM needed. release-check
       # and the serve tests look at the pages in the runner's Google Chrome.
+      # In a scope of the runner user's systemd: rootless podman puts the
+      # container's cgroup under user@.service, and `podman exec` from the
+      # runner's own cgroup (in system.slice) may not move into it.
       - name: make e2e
-        run: make e2e
+        run: systemd-run --user --scope --quiet -- make e2e
