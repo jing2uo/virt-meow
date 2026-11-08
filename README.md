@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="packaging/flatpak/io.github.jing2uo.VirtMeow.png" alt="virt-meow" width="128">
+</p>
+
 **virt-meow** — virt-manager, minus the typing. The command is `virt-mm`.
 
 [简体中文](README.zh-CN.md)
