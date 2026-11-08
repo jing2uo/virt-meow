@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- virt-meow.app's; scripts/macos-app.sh fills in @VERSION@ (0.1.0-3-gabc1234)
+     and @SHORT_VERSION@ (0.1.0). -->
+<plist version="1.0">
+<dict>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.jing2uo.VirtMeow</string>
+	<key>CFBundleName</key>
+	<string>virt-meow</string>
+	<key>CFBundleDisplayName</key>
+	<string>virt-meow</string>
+	<key>CFBundleExecutable</key>
+	<string>virt-mm</string>
+	<key>CFBundleIconFile</key>
+	<string>virt-meow</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@SHORT_VERSION@</string>
+	<key>CFBundleVersion</key>
+	<string>@SHORT_VERSION@</string>
+	<key>CFBundleGetInfoString</key>
+	<string>virt-meow @VERSION@</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.developer-tools</string>
+	<!-- What Go 1.27 runs on. -->
+	<key>LSMinimumSystemVersion</key>
+	<string>12.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright (c) 2026 Komh. MIT License.</string>
+</dict>
+</plist>

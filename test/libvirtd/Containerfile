@@ -1,0 +1,63 @@
+# A libvirtd for the e2e tests, behind the usual Unix socket and an sshd so
+# the SSH transport is exercised end to end. Two drivers: test:///default
+# (no QEMU at all), and qemu:///system with QEMU under TCG (no /dev/kvm),
+# OVMF and swtpm, to define and boot real machines, and a tiny Linux guest
+# with qemu-guest-agent (agent-guest.sh), osinfo-db, which virt-meow reads
+# over SSH as a host's own, and virtiofsd for shared folders. The LVM backend is there
+# for logical pools to be refused properly: an unprivileged container has no
+# block devices to make a volume group of, and giving it the host's loop and
+# device-mapper devices is more than a test should touch. The network driver
+# with dnsmasq and nftables runs NAT, routed, isolated and bridged networks,
+# given the capabilities test/e2e.sh starts the container with. The same
+# image runs a D-Bus session bus with GNOME Keyring's Secret Service on it,
+# in a container of its own (secrets.sh), for virt-meow's remembered secrets.
+FROM docker.io/library/debian:trixie
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libvirt-daemon libvirt-daemon-driver-qemu libvirt-daemon-driver-storage \
+        libvirt-daemon-driver-secret libvirt-daemon-driver-storage-logical \
+        libvirt-daemon-driver-network libvirt-daemon-driver-nodedev dnsmasq-base nftables iproute2 \
+        qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools openssh-server libvirt-clients osinfo-db virtiofsd \
+        dbus-daemon gnome-keyring \
+    && rm -rf /var/lib/apt/lists/*
+
+# libvirtd looks up the peer of a Unix-socket client by uid; the tests
+# connect as the host user through the bind-mounted socket, uid 1000. The
+# user pw logs in over SSH with a password only (e2e-password), for the
+# prompts and remembering them.
+RUN useradd -u 1000 -M -d /nonexistent e2e \
+    && mkdir -p /run/sshd /root/.ssh \
+    && chmod 700 /root/.ssh \
+    && printf '%s\n' 'unix_sock_rw_perms = "0777"' 'auth_unix_rw = "none"' 'auth_unix_ro = "none"' \
+        >> /etc/libvirt/libvirtd.conf \
+    && useradd -m -s /bin/sh pw && echo 'pw:e2e-password' | chpasswd \
+    && printf '%s\n' 'PermitRootLogin prohibit-password' 'PasswordAuthentication no' \
+        'Match User pw' '    PasswordAuthentication yes' \
+        > /etc/ssh/sshd_config.d/e2e.conf \
+    && printf '%s\n' 'security_driver = "none"' 'namespaces = [ ]' 'cgroup_controllers = [ ]' \
+        'user = "root"' 'group = "root"' 'remember_owner = 0' 'dynamic_ownership = 0' \
+        >> /etc/libvirt/qemu.conf \
+    && mkdir -p /var/lib/libvirt/images
+
+# virtiofsd can't make its sandbox (namespaces) in an unprivileged
+# container, nor keep CAP_MKNOD, which podman doesn't give: libvirt finds
+# it through this descriptor, which runs it without either. A real host
+# runs it as Debian ships it.
+RUN mkdir -p /etc/qemu/vhost-user /usr/local/libexec \
+    && printf '#!/bin/sh\nexec /usr/libexec/virtiofsd --sandbox=none --modcaps=-mknod "$@"\n' \
+        > /usr/local/libexec/virtiofsd-e2e \
+    && chmod 755 /usr/local/libexec/virtiofsd-e2e \
+    && sed 's#/usr/libexec/virtiofsd#/usr/local/libexec/virtiofsd-e2e#' \
+        /usr/share/qemu/vhost-user/50-virtiofsd.json > /etc/qemu/vhost-user/50-virtiofsd.json
+
+# The agent guest (agent-guest.sh says what it is); the kernel package goes
+# once its vmlinuz is copied.
+COPY agent-guest.sh /agent-guest.sh
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        linux-image-amd64 kmod busybox-static qemu-guest-agent cpio \
+    && sh /agent-guest.sh \
+    && apt-get purge -y 'linux-image-*' busybox-static qemu-guest-agent cpio && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* /agent-guest.sh /lib/modules
+
+COPY entrypoint.sh secrets.sh /
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

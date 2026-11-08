@@ -1,0 +1,109 @@
+# Cuts a GitHub Release with everything build.yml makes, published at once
+# (not a draft, not a prerelease: FlatPark goes by releases/latest). Either
+# run it from the Actions tab and pick the bump - the version is the latest
+# v* tag plus that bump, and the tag is created on the run's commit - or
+# push a vX.Y.Z tag yourself.
+#
+# The files keep the same names from one release to the next, for FlatPark's
+# extra-data to find (the CLI archives alone carry the version):
+#   virt-mm-linux-x86_64, virt-mm-linux-aarch64   the Linux GUI and CLI
+#   virt-meow-macos.zip                           virt-meow.app
+#   virt-mm-windows-amd64.zip, …-arm64.zip        virt-mm.exe
+#   virt-mm_<version>_<os>_<arch>.tar.gz|.zip     the CLI (make dist)
+#   SHA256SUMS                                    of all of them
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump from the latest release
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+concurrency: release
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: v
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            tag=$GITHUB_REF_NAME
+            others=$(git tag --points-at HEAD | grep '^v' | grep -vxF "$tag" || true)
+          else
+            tag=$(scripts/version.sh next "$BUMP")
+            others=$(git tag --points-at HEAD | grep '^v' || true)
+          fi
+          if [ -n "$others" ]; then
+            echo "::error::$GITHUB_SHA is already released as $others"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $tag" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: version
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          cd release
+          chmod +x virt-mm-linux-*
+          want="virt-mm-linux-x86_64 virt-mm-linux-aarch64 virt-meow-macos.zip
+            virt-mm-windows-amd64.zip virt-mm-windows-arm64.zip"
+          for f in $want; do
+            [ -f "$f" ] || { echo "::error::$f is missing"; exit 1; }
+          done
+          [ "$(find . -name 'virt-mm_*' | wc -l)" -eq 6 ] || { echo "::error::not 6 CLI archives"; ls; exit 1; }
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+          # Creates the tag on this commit when the run was a manual one.
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "$TAG" --generate-notes \
+            ./*
+
+  # Tells FlatPark the release is live, so it pins and publishes the new
+  # version right away. The release is created above with GITHUB_TOKEN, which
+  # starts no on: release runs, hence a job here with the tag passed in.
+  flatpark:
+    needs: [version, release]
+    runs-on: ubuntu-24.04
+    # A FlatPark hiccup should never fail the release.
+    continue-on-error: true
+    steps:
+      - uses: flatpark/publish-action@v1
+        with:
+          app-id: io.github.jing2uo.VirtMeow
+          tag: ${{ needs.version.outputs.tag }}

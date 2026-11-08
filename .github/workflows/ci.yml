@@ -1,0 +1,66 @@
+# On every pull request and push to main: the checks, and every platform's
+# build (build.yml: the GUI for Linux, macOS and Windows, and the CLI). The
+# e2e tests, which take a while, on pushes to main and by hand only.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: gofmt, unit tests, vet
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "::error::not gofmt'ed:"
+            echo "$out"
+            exit 1
+          fi
+      - name: make test
+        run: make test
+      - name: vet the e2e tests
+        run: go vet -tags 'e2e nogui' ./test/e2e/
+      # The core and the CLI build for every platform (ADR-0001).
+      - name: vet for darwin and windows
+        run: |
+          for os in darwin windows; do
+            GOOS=$os CGO_ENABLED=0 go vet -tags nogui ./...
+          done
+
+  build:
+    uses: ./.github/workflows/build.yml
+
+  e2e:
+    name: e2e (libvirtd in a container) and release-check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # release-check builds from git archive HEAD.
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # QEMU runs under TCG in the container: no KVM needed. release-check
+      # and the serve tests look at the pages in the runner's Google Chrome.
+      - name: make e2e
+        run: make e2e

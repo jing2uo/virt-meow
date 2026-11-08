@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>virt-meow</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="icon" href="./favicon.png" type="image/png">
+</head>
+<body class="loginpage">
+<form id="login" class="card login" autocomplete="on">
+  <h1>virt-meow</h1>
+  <p class="mute" data-t="登录后管理这台服务器连接的主机。">登录后管理这台服务器连接的主机。</p>
+  <input type="text" name="username" value="virt-mm" autocomplete="username" hidden>
+  <label><span data-t="密码">密码</span><input type="password" name="password" autocomplete="current-password" required autofocus></label>
+  <p class="error" id="login-error"></p>
+  <p class="hint" id="login-note"></p>
+  <div class="buttons"><button type="submit" class="primary" data-t="登录">登录</button></div>
+</form>
+<script type="module" src="./login.js"></script>
+</body>
+</html>

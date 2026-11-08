@@ -1,0 +1,164 @@
+# Builds everything a release ships, as artifacts (release.yml uploads them):
+#   linux-<arch>    the GUI for Linux, which is also the CLI (virt-mm with a
+#                   command), x86_64 and aarch64 natively; built on debian:sid
+#                   so it links nothing newer than org.gnome.Platform//51 has
+#                   (scripts/Containerfile says why); FlatPark's package
+#                   downloads these
+#   macos           virt-meow.app, universal (arm64 + amd64), zipped; unsigned
+#   windows         virt-mm.exe for amd64 and arm64, zipped; cross-compiled,
+#                   as Wails needs no cgo on Windows
+#   cli             make dist: the static nogui CLI for six platforms
+# release.yml calls it with the version of the release being cut, ci.yml
+# without; then the version comes from scripts/version.sh.
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to stamp (default scripts/version.sh)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: docker.io/library/debian:sid
+    steps:
+      # The packages of scripts/Containerfile, and git and make.
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git make gcc libc6-dev pkg-config \
+            libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # the tags, for scripts/version.sh
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "VERSION=${VERSION:-$(scripts/version.sh)}" >> "$GITHUB_ENV"
+
+      - name: Build GUI
+        run: |
+          make gui-native GUI_OUT="dist/virt-mm-linux-${{ matrix.arch }}"
+          "dist/virt-mm-linux-${{ matrix.arch }}" version
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist/virt-mm-linux-${{ matrix.arch }}
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: echo "VERSION=${VERSION:-$(scripts/version.sh)}" >> "$GITHUB_ENV"
+
+      # cgo (Cocoa, WebKit); go passes clang -arch for the other one.
+      - name: Build GUI
+        run: |
+          for a in arm64 amd64; do
+            GOARCH=$a CGO_ENABLED=1 make gui-native GUI_OUT="dist/virt-mm-darwin-$a"
+          done
+
+      - name: virt-meow.app
+        run: |
+          mkdir -p dist/release
+          scripts/macos-app.sh dist/virt-mm-darwin-amd64 dist/virt-mm-darwin-arm64 dist/release/virt-meow-macos.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: dist/release/virt-meow-macos.zip
+          if-no-files-found: error
+
+  windows:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: echo "VERSION=${VERSION:-$(scripts/version.sh)}" >> "$GITHUB_ENV"
+
+      # Icon, version and manifest resources, then the GUI-subsystem exe.
+      - name: Build GUI
+        run: make windows
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: dist/release/virt-mm-windows-*.zip
+          if-no-files-found: error
+
+  cli:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: echo "VERSION=${VERSION:-$(scripts/version.sh)}" >> "$GITHUB_ENV"
+
+      # The Windows CLI gets the GUI's icon and version resources too.
+      - name: make dist
+        run: |
+          make winres
+          make dist
+          rm dist/release/SHA256SUMS  # release.yml makes one for every file
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli
+          path: dist/release/virt-mm_*
+          if-no-files-found: error

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>virt-meow</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="icon" href="./favicon.png" type="image/png">
+</head>
+<body>
+<aside>
+  <div class="brand"><span>virt-meow</span><button type="button" class="icon" id="side-hide" data-side data-title="收起侧栏" data-label="收起侧栏" aria-label="收起侧栏"><span class="i i-panel-left-close" aria-hidden="true"></span></button></div>
+  <nav class="list fixed"><div class="conn" id="go-all" role="button" tabindex="0"><span class="i i-layers" aria-hidden="true"></span>
+    <div class="txt"><div class="name" data-t="所有主机">所有主机</div></div></div></nav>
+  <div class="group">
+    <span data-t="连接">连接</span>
+    <button type="button" class="icon" id="add" data-title="添加连接" data-label="添加连接" aria-label="添加连接"><span class="i i-plus" aria-hidden="true"></span></button>
+  </div>
+  <nav class="list" id="conns"></nav>
+  <div class="side-foot">
+    <button type="button" id="activity-btn"><span><span class="i i-activity" aria-hidden="true"></span><span data-t="动态">动态</span></span><span class="count"></span></button>
+    <button type="button" class="icon" id="settings-btn" data-title="设置" data-label="设置" aria-label="设置"><span class="i i-settings i-lg" aria-hidden="true"></span></button>
+  </div>
+  <button type="button" id="logout" hidden><span class="i i-log-out" aria-hidden="true"></span><span data-t="退出登录">退出登录</span></button>
+</aside>
+<div id="side-scrim"></div>
+<main id="main"></main>
+
+<dialog id="dlg-add">
+  <form method="dialog" id="form-add">
+    <h2 data-t="添加连接">添加连接</h2>
+    <div class="seg" id="kind">
+      <button type="button" data-kind="ssh" class="on" data-t="远程主机 (SSH)">远程主机 (SSH)</button>
+      <button type="button" data-kind="system" data-t="本机 (system)">本机 (system)</button>
+      <button type="button" data-kind="session" data-t="本机 (session)">本机 (session)</button>
+      <button type="button" data-kind="uri">URI</button>
+    </div>
+    <div class="fields" data-for="ssh">
+      <label><span data-t="主机">主机</span><input name="host" placeholder="kvm1.example.com" autocomplete="off" spellcheck="false"></label>
+      <p class="hint" data-t="主机名、地址, 或 ~/.ssh/config 里的 Host 别名">主机名、地址, 或 ~/.ssh/config 里的 Host 别名</p>
+      <div class="row">
+        <label><span data-t="用户">用户</span><input name="user" placeholder="root" autocomplete="off" spellcheck="false"></label>
+        <label class="narrow"><span data-t="端口">端口</span><input name="port" placeholder="22" inputmode="numeric"></label>
+      </div>
+    </div>
+    <div class="fields" data-for="uri" hidden>
+      <label>URI<input name="uri" placeholder="qemu+ssh://root@kvm1/system" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <label><span data-t="名称 (可选)">名称 (可选)</span><input name="name" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" name="autoconnect" checked><span data-t="启动时自动连接">启动时自动连接</span></label>
+    <p class="preview mono" id="uri-preview"></p>
+    <p class="hint" id="uri-route"></p>
+    <div class="buttons">
+      <button type="button" value="cancel" data-close data-t="取消">取消</button>
+      <button type="submit" class="primary" data-t="添加">添加</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-prompt">
+  <form method="dialog" id="form-prompt">
+    <h2 id="prompt-title"></h2>
+    <p class="mute" id="prompt-text"></p>
+    <p class="hint warn" id="prompt-refused" hidden></p>
+    <input type="password" name="secret" autocomplete="off">
+    <label class="check" id="prompt-remember" hidden><input type="checkbox" name="remember"><span data-t="记住它 (存入系统钥匙串, 不写文件)">记住它 (存入系统钥匙串, 不写文件)</span></label>
+    <div class="buttons">
+      <button type="button" data-close data-t="取消">取消</button>
+      <button type="submit" class="primary" data-t="确定">确定</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-confirm">
+  <form method="dialog">
+    <h2 id="confirm-title"></h2>
+    <p class="mute" id="confirm-text"></p>
+    <div class="buttons">
+      <button type="button" data-close data-t="取消">取消</button>
+      <button type="submit" class="danger" id="confirm-ok" value="ok"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-create" class="wide">
+  <form method="dialog" id="form-create" autocomplete="off"></form>
+</dialog>
+
+<dialog id="dlg-delete">
+  <form method="dialog">
+    <h2 id="delete-title"></h2>
+    <p class="mute" id="delete-text"></p>
+    <label class="check"><input type="checkbox" name="disks"><span data-t="同时删除它的磁盘和 cloud-init 种子 (光驱里的其他 ISO 不受影响)">同时删除它的磁盘和 cloud-init 种子 (光驱里的其他 ISO 不受影响)</span></label>
+    <ul class="lost mono" id="delete-disks" hidden></ul>
+    <div class="buttons">
+      <button type="button" data-close data-t="取消">取消</button>
+      <button type="submit" class="danger" value="ok" data-t="删除">删除</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-xml" class="wide xml">
+  <form method="dialog" id="form-xml">
+    <h2 id="xml-title"></h2>
+    <p class="hint" id="xml-note"></p>
+    <textarea class="xml" name="xml" spellcheck="false" wrap="off" autocomplete="off"></textarea>
+    <p class="hint" data-t="Tab 缩进, Ctrl+S 保存。libvirt 校验通过才会保存。">Tab 缩进, Ctrl+S 保存。libvirt 校验通过才会保存。</p>
+    <p class="error" id="xml-error"></p>
+    <div class="buttons">
+      <button type="button" class="left" id="xml-reload" data-t="从主机重新读取">从主机重新读取</button>
+      <button type="button" id="xml-cancel" data-t="取消">取消</button>
+      <button type="submit" class="primary" id="xml-save" data-t="保存">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-form">
+  <form method="dialog" id="form-dialog" autocomplete="off"></form>
+</dialog>
+
+<div id="uploads"></div>
+<div id="toasts"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

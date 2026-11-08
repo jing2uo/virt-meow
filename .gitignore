@@ -1,0 +1,8 @@
+/dist/
+/.cache/
+.flatpak-builder/
+# The page's vendored JavaScript, which a global "vendor" ignore would drop.
+!/internal/ui/assets/vendor/
+!/internal/ui/assets/vendor/**/vendor/
+# Windows resources, made by make winres for each build's version.
+/cmd/virt-mm/rsrc_windows_*.syso

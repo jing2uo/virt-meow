@@ -1,0 +1,44 @@
+# Local test build: packages dist/virt-mm (make gui) as-is. A release build
+# would compile in the GNOME SDK instead.
+id: io.github.jing2uo.VirtMeow
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: virt-mm
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # This computer's libvirt: the system daemon's socket, and the session
+  # daemon's under $XDG_RUNTIME_DIR.
+  - --filesystem=/run/libvirt
+  - --filesystem=xdg-run/libvirt
+  # SSH: the agent, and ~/.ssh read-only for the default keys and
+  # known_hosts (virt-meow writes its own known_hosts in its config dir).
+  - --socket=ssh-auth
+  - --filesystem=~/.ssh:ro
+  # Desktop notifications when a long operation ends or a machine stops
+  # while no virt-meow window has focus (off in its settings).
+  - --talk-name=org.freedesktop.Notifications
+  # The keychain (Secret Service), for the passwords and key passphrases
+  # the user asks to be remembered.
+  - --talk-name=org.freedesktop.secrets
+modules:
+  - name: virt-mm
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 virt-mm /app/bin/virt-mm
+      - install -Dm644 io.github.jing2uo.VirtMeow.desktop /app/share/applications/io.github.jing2uo.VirtMeow.desktop
+      - install -Dm644 io.github.jing2uo.VirtMeow.png /app/share/icons/hicolor/512x512/apps/io.github.jing2uo.VirtMeow.png
+      - install -Dm644 io.github.jing2uo.VirtMeow.metainfo.xml /app/share/metainfo/io.github.jing2uo.VirtMeow.metainfo.xml
+    sources:
+      - type: file
+        path: ../../dist/virt-mm
+      - type: file
+        path: io.github.jing2uo.VirtMeow.desktop
+      - type: file
+        path: io.github.jing2uo.VirtMeow.png
+      - type: file
+        path: io.github.jing2uo.VirtMeow.metainfo.xml
